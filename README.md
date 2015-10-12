@@ -7,5 +7,5 @@ The commits and tags in this repository were carefully created to match the sequ
 
 
 - Можно ли резделять фал модели на меньшие части.
-- Что можно прописать здесь?  app/models/__init__.py
+- Что можно прописать здесь? `app/models/__init__.py`
 
