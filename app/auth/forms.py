@@ -21,7 +21,7 @@ class RegistrationForm(Form):
                                                           'numbers, dots or underscores'
                                                           )])
     password = PasswordField('Password', validators=[
-        DataRequired(), EqualTo('password2',message='Passswords must match.')])
+        DataRequired(), EqualTo('password2', message='Passswords must match.')])
     password2 = PasswordField('Confirm password', validators=[DataRequired()])
     submit = SubmitField('Register')
 
