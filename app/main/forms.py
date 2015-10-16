@@ -42,12 +42,12 @@ class EditProfileAdminForm(Form):
                              Role.query.order_by(Role.name).all()]
         self.user = user
 
-    def validate_email(self, field):
+    def validate_username(self, field):
         if field.data != self.user.name and \
                 User.query.filter_by(email=field.data).first():
             raise ValidationError('Email already registered')
 
-    def validate_username(self, field):
+    def validate_email(self, field):
         if field.data != self.user.username and \
-                User.query.fileter_by(username=field.data).first():
+                User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use')
