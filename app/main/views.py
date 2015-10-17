@@ -3,15 +3,30 @@ from flask import render_template, session, redirect, url_for, current_app, \
 from .. import db
 from ..models.user import User
 from ..models.role import Role
+from ..models.post import Post
+from ..models.permission import Permission
 from ..email import send_email
 from . import main
-from .forms import NameForm, EditProfileForm, EditProfileAdminForm
+from .forms import NameForm, EditProfileForm, EditProfileAdminForm, PostForm
 from flask.ext.login import login_required, current_user
 from ..decorators import admin_required
 
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
+    form = PostForm()
+    if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
+        post = Post(body=form.body.data,
+                    author=current_user._get_current_object())
+        db.session.add(post)
+        return redirect(url_for('.index'))
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index.html', form=form, posts=posts)
+
+
+
+@main.route('/greetings', methods=['GET', 'POST'])
+def greetings():
     form = NameForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
@@ -26,7 +41,7 @@ def index():
             session['known'] = True
         session['name'] = form.name.data
         return redirect(url_for('.index'))
-    return render_template('index.html',
+    return render_template('greetings.html',
                            form=form, name=session.get('name'),
                            known=session.get('known', False))
 
