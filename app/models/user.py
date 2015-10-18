@@ -9,6 +9,22 @@ from .role import Role
 import hashlib
 
 
+class Follow(db.Model):
+    __tablename__ = 'follows'
+
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    '''
+    How to define composite key
+    '''
+    # __tableargs__ = (db.ForeignKeyConstraint(
+    #     [follower_id, followed_id],
+    #     [User.id, User.id]))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -146,18 +162,21 @@ class User(UserMixin, db.Model):
             except IntegrityError:
                 db.session.rollback()
 
+    def follow(self, user):
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
+    def unfollow(self, user):
+        f = self.followed.filter_by(followe_id=user.id).first()
+        if f:
+            db.session.delete(f)
+
+    def is_following(self, user):
+        return self.followed.filter_by(follwed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
+        return self.followers.filter_by(follwer_id=user.id).first() is not None
+
     def __repr__(self):
         return '<User %r>' % self.username
-
-
-class Follow(db.Model):
-    __tablename__ = 'follows'
-
-    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-                            primary_key=True)
-    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
-                            primary_key=True)
-    __tableargs__ = (db.ForeignKeyConstraint(
-        [follower_id, followed_id],
-        [User.id, User.id]))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
