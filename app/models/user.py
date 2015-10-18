@@ -24,6 +24,16 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     avatar_hash = db.Column(db.String(32))
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    followed = db.relationship('Follow',
+                               foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+    followers = db.relationship('Follow',
+                                foreign_keys=[Follow.followed_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -136,6 +146,18 @@ class User(UserMixin, db.Model):
             except IntegrityError:
                 db.session.rollback()
 
-
     def __repr__(self):
         return '<User %r>' % self.username
+
+
+class Follow(db.Model):
+    __tablename__ = 'follows'
+
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
+                            primary_key=True)
+    __tableargs__ = (db.ForeignKeyConstraint(
+        [follower_id, followed_id],
+        [User.id, User.id]))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow())
