@@ -6,6 +6,7 @@ from flask import current_app, request
 from .permission import Permission
 from datetime import datetime
 from .role import Role
+
 import hashlib
 
 
@@ -61,6 +62,7 @@ class User(UserMixin, db.Model):
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(self.email.encode(
                 'utf-8')).hexdigest()
+        self.follow(self)
 
     @property
     def password(self):
@@ -173,10 +175,24 @@ class User(UserMixin, db.Model):
             db.session.delete(f)
 
     def is_following(self, user):
-        return self.followed.filter_by(follwed_id=user.id).first() is not None
+        return self.followed.filter_by(followed_id=user.id).first() is not None
 
     def is_followed_by(self, user):
-        return self.followers.filter_by(follwer_id=user.id).first() is not None
+        return self.followers.filter_by(follower_id=user.id).first() is not None
+
+    @property
+    def followed_posts(self):
+        from .post import Post
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id) \
+            .filter(Follow.follower_id == self.id)
+
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
 
     def __repr__(self):
         return '<User %r>' % self.username
