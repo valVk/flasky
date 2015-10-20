@@ -219,7 +219,7 @@ def unfollow(username):
 
 
 # TODO Preliminary implementation
-def __followers(username):
+def _followers(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
         flash('Invalid user.')
