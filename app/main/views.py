@@ -4,10 +4,12 @@ from .. import db
 from ..models.user import User
 from ..models.role import Role
 from ..models.post import Post
+from ..models.comment import Comment
 from ..models.permission import Permission
 from ..email import send_email
 from . import main
-from .forms import NameForm, EditProfileForm, EditProfileAdminForm, PostForm
+from .forms import NameForm, EditProfileForm, EditProfileAdminForm, PostForm, \
+    CommentForm
 from flask.ext.login import login_required, current_user
 from ..decorators import admin_required, permission_required
 
@@ -131,7 +133,24 @@ def edit_profile_admin(id):
 @main.route('/post/<int:id>')
 def post(id):
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(body=form.body.data,
+                          post=post,
+                          author=current_user._get_current_object())
+        db.session.add(comment)
+        flash('Yoor comment has been published.')
+        return redirect(url_for('.post', id=post.id, page=-1))
+    page = request.args.get('page', 1, type=int)
+    if page == -1:
+        page = (post.comments.count() - 1) / \
+               current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(
+        page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],
+        error_out=False)
+    comments = pagination.items
+    return render_template('post.html', posts=[post], form=form,
+                           comments=comments, pagination=pagination)
 
 
 @main.route('/post/edit/<int:id>', methods=['GET', 'POST'])
@@ -166,7 +185,6 @@ def follow(username):
     return redirect(url_for('.user', username=username))
 
 
-# TODO DRY
 @main.route('/followers/<username>')
 def followers(username):
     user, page, pagination, follows = _followers(username)
@@ -175,7 +193,6 @@ def followers(username):
                            follows=follows)
 
 
-# TODO DRY
 @main.route('/followed-by/<username>')
 def followed_by(username):
     user, page, pagination, follows = _followers(username)
@@ -200,7 +217,41 @@ def unfollow(username):
     return redirect(url_for('.user', username=username))
 
 
-# TODO Preliminary implementation
+@main.route('/moderate')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate():
+    page = request.args.get('page', 1, type=int)
+    pagination = Comment.query.order_by(Comment.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],
+        error_out=False)
+    comments = pagination.items
+    return render_template('moderate.html', comments=comments,
+                           pagination=pagination, page=page)
+
+
+@main.route('/moderate/enable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_enable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = False
+    db.session.add(comment)
+    return redirect(url_for('.moderate', page=request.args.get('page', 1,
+                                                               type=int)))
+
+
+@main.route('/moderate/disable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_disable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = True
+    db.session.add(comment)
+    return redirect(url_for('.moderate', page=request.args.get('page', 1,
+                                                               type=int)))
+
+
 def _followers(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
