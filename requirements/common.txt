@@ -8,6 +8,7 @@ Flask-Mail==0.9.1
 Flask-Migrate==1.6.0
 Flask-Moment==0.5.1
 Flask-OpenID==1.2.5
+Flask-PageDown==0.2.1
 Flask-SQLAlchemy==2.0
 Flask-Script==2.0.5
 Flask-WTF==0.12
@@ -15,6 +16,7 @@ Flask-WhooshAlchemy==0.56
 Jinja2==2.8
 Mako==1.0.2
 MarkupSafe==0.23
+Markdown==2.6.2
 Pillow==3.0.0
 PyYAML==3.11
 Pygments==2.0.2
@@ -27,6 +29,7 @@ alembic==0.8.2
 binaryornot==0.4.0
 blinker==1.4
 boto==2.38.0
+bleach==1.4.2
 chardet==2.3.0
 click==5.1
 coverage==4.0
