@@ -1,7 +1,10 @@
-from flask import request, current_app, url_for, jsonify
-from app.api_1_0 import api
+from flask import jsonify, request, g, url_for, current_app
+from .. import db
+from . import api
 from app.models.comment import Comment
+from app.models.permission import Permission
 from app.models.post import Post
+from .decorators import permission_required
 
 
 @api.route('/comments/')
@@ -24,6 +27,13 @@ def get_comments():
         'count': pagination.total
     })
 
+
+@api.route('/comments/<int:id>')
+def get_comment(id):
+    comment = Comment.query.get_or_404(id)
+    return jsonify(comment.to_json())
+
+
 @api.route('/posts/<int:id>/comments/')
 def get_post_comments(id):
     post = Post.query.get_or_404(id)
@@ -44,3 +54,17 @@ def get_post_comments(id):
         'next': next,
         'count': pagination.total
     })
+
+
+@api.route('/posts/<int:id>/comments/', methods=['POST'])
+@permission_required(Permission.COMMENT)
+def new_post_comment(id):
+    post = Post.query.get_or_404(id)
+    comment = Comment.from_json(request.json)
+    comment.author = g.current_user
+    comment.post = post
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify(comment.to_json()), 201, \
+        {'Location': url_for('api.get_comment', id=comment.id,
+                             _external=True)}
